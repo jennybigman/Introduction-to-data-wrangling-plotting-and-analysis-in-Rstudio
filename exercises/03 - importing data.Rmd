@@ -12,7 +12,7 @@ pacman::p_load(knitr, tidyverse, here)
 
 # Set up
 
-Let's load the packages we will need. Packages contain useful code that is written by other people for our use. We will install (install.packages()) and load (library()) the 'tidyverse' package, which loads all packages in the 'tidyverse' (see: https://www.tidyverse.org/packages/). These are very useful for data wrangling and visualization. 
+Let's load the packages we will need. Packages contain useful code that is written by other people for our use. We will install `install.packages()` and `library()` or `pacman::p_load` to install and load  the 'tidyverse' package, which loads all packages in the 'tidyverse' (see: https://www.tidyverse.org/packages/). These are very useful for data wrangling and visualization. 
 
 ```{r}
 
@@ -20,12 +20,14 @@ install.packages("tidyverse", repos = 'https://cran.rstudio.com')
 
 library(tidyverse)
 
+pacman::p_load(tidyverse)
+
 ```
 
 
 # R projects and working directories
 
-Your working directory is where Rstudio is reading files from and saving files to. It is easiest to create a new Rproject for each project (e.g., a thesis chapter, a paper, etc.) and then your working directory will be set to the Rproject. For example, I shared this Rproject with you -- it is called "Introduction to data wrangling, visualization, and analysis". In the Files pane, you will see a little blue cube with an R in the middle; that is the symbol for an Rproject. To create a new Rproject, go to File > New Project and create it where you'd like it on your computer. 
+Your working directory is where Rstudio is reading files from and saving files to. It is easiest to create a new 'Rproject' for each project (e.g., a thesis chapter, a paper, etc.) and then your working directory will be set to the Rproject. For example, I shared this Rproject with you -- it is called "Introduction to data wrangling, visualization, and analysis". In the Files pane, you will see a little blue cube with an R in the middle; that is the symbol for an Rproject. To create a new Rproject, go to File > New Project and create it where you'd like it on your computer. 
 
 # Let's import some data and learn about data classes
 
@@ -39,9 +41,9 @@ dat <- dat %>%
 
 ```
 
-Q: What would happen if we didn't specify the data folder (e.g. dat <- read.csv("portal_data_joined.csv)?)
+Q: What would happen if we didn't specify the data folder (e.g. `dat <- read.csv("portal_data_joined.csv)`?
 
-Q: What do you think the 'here' function does in the call to import a dataframe?
+Q: What do you think the `here()` function does in the call to import a dataframe?
 
 Ok, now we have some data. Let's look at its structure. There are many ways to do this. Let's try a few of my favorites. 
 
@@ -67,13 +69,12 @@ There are different classes of data -- numeric, chatacter, logical, factor. Let'
 glimpse(dat)
 ```
 
-<chr> is character. What is <dbl>? It means numeric but is a blanket category for numbers with and without decimals. 
+`<chr>` is character. What is `<dbl>`? It means numeric but is a blanket category for numbers with and without decimals. 
 
 There are two data types that are not present in the dataframe. Let's add them! You can only add a variable if it has the same number of values (rows) of the others. Let's figure out how many rows we have, create a logical variable (TRUE/FALSE) and a factor variable, and add them to the dataframe. A factor is a special kind of class of variable. Typically, you would use factors for categorical variables (e.g., days of the week, groups). Factors are stored in R as a vector of integers with a corresponding set of character values. They can be confusing and cause issues -- I don't use them that often but something to know about. They can be helpful for plotting when you are trying to order plots in a specific order.
 
 ```{r, error = TRUE}
 # how many rows are in the dataframe (we can comment and annotate our code with '#')
-
 nrow(dat)
 
 # let's make this an object so we can use it later
@@ -112,7 +113,6 @@ dat2 <- dat %>%
 				 factor_var = factor_var2)
 
 names(dat2)
-
 ```
 
 Q: Why are we using 'length()' instead of 'nrow()' in the code chunk above?

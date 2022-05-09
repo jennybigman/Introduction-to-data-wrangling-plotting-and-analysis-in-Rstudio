@@ -1,0 +1,66 @@
+---
+title: "Introduction to data wrangling, visualization, and analysis in Rstudio"
+subtitle: "02 -- what is data wrangling?"
+author: "Jenny Bigman"
+date: '05/12/22'
+output:
+  xaringan::moon_reader:
+    css: ["default", ninjutsu, rladies-fonts]
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+### Data wrangling is the first step in your workflow, after you import your data
+
+---
+```{r xaringanextra-tachyons, echo = FALSE}
+xaringanExtra::use_tachyons()
+```
+
+### Data wrangling is the first step in your workflow, after you import your data
+
+.center.bottom[![](HWW_Slide1.png)
+]
+
+---
+### Data wrangling is the first step in your workflow, after you import your data
+
+.center.bottom[![](HWW_Slide2.png)
+]
+
+---
+
+### Data wrangling is the first step in your workflow, after you import your data
+
+.center.bottom[![](HWW_Slide3.png)
+]
+
+---
+
+### Data wrangling is the first step in your workflow, after you import your data
+
+.center.bottom[![](HWW_Slide4.png)
+]
+
+---
+
+### Data wrangling is the first step in your workflow, after you import your data
+
+.center.bottom[![](HWW_Slide5.png)
+]
+---
+
+### Data wrangling is the first step in your workflow, after you import your data
+
+.center.bottom[![](HWW_Slide6.png)
+]
+
+---
+
+### Data wrangling is the first step in your workflow, after you import your data
+
+.center.bottom[![](HWW_Slide7.png)
+]

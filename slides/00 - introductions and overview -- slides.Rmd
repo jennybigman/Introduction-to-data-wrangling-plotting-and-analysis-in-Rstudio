@@ -2,7 +2,7 @@
 title: "Introduction to data wrangling, visualization, and analysis in Rstudio"
 subtitle: "00 - introductions and overview"
 author: "Jenny Bigman"
-date: '`r format(Sys.time(), format = "%F")`'
+date: '05/12/22'
 output:
   xaringan::moon_reader:
     css: ["default", ninjutsu, rladies-fonts]
@@ -48,9 +48,9 @@ macroecology, life history theory, (comparative) ecophysiology, phylogenetic com
 I bridge macroecology with fisheries science to understand physiological, ecological, and evolutionary patterns across fishes (and other vertebrates). I mostly think about how environmental variation elicits these patterns and how these patterns (and fish) will change in the future as our climate changes. I am especially interested in the effects of oxygen and temperature on the ecology and evolution of fishes (size, abundance, distribution, life histories)
 
 --
-
-.red[I am not an expert in R or statistics -- I am an R user that _has experience_ with data wrangling, visualization, and analysis]
-
+<div class = "red">
+I am not an expert in R or statistics -- I am an R user that <i> has experience </i>    with data wrangling, visualization, and analysis
+</div>
 ---
 class: center, middle, inverse
 
@@ -65,16 +65,15 @@ class: inverse
 
 We will learn how to:
 1. import a dataframe into R
-2. examine and manipulate data
-3. calculate summary statistics from a data frame
-4. use ggplot to visualize data
-5. begin analyzing data
-6. edit ggplot themes to make a publication quality figure
+2. examine and manipulate data 
+3. preliminary plots for data exploration
+4. begin analyzing data
+5. edit ggplot themes to make a publication quality figure
+6. seeking help and other resources
 
 --
 
-**Your R journey does not end here. This is a beginner's course and there is much to learn. There are many online resources (how most people learn R, including myself)**
---
+**We may not get through all of this. That is ok because your R journey does not end here. This is a beginner's course and there is much to learn (I am still learning new things everyday!). There are many online resources (how most people learn R, including myself), which we will go over at the end.**
 ---
 
 class: inverse
@@ -92,7 +91,7 @@ Helper
 
 class: inverse
 
-###Everyone should have R _and_ Rstudio downloaded and installed
+###Everyone should have R _and_  Rstudio downloaded and installed
 
 --
 

@@ -1,0 +1,693 @@
+---
+title: "linear modeling"
+author: "Jenny Bigman"
+date: "5/6/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load(knitr, tidyverse, here, wakefield)
+
+morph <- read_csv(here("./data/morph.csv"))
+```
+
+Linear models are the bread and butter of data analysis for ecology (and physiology!). They are a statistical model that assess the relationship between the response variable(s) and the explanatory variable(s) (and possibly, their interaction). In univariate statistics, you will have one response variable (y). Like any statistical model, there are assumptions that you have to make sure are not violated. If they are, you cannot trust the results. We will go into this in more detail in a second.
+
+One thing to note is that people use different terms for the x and y variables. I generally use the term 'response' for y and 'predictor' for x. Above, you'll note I used 'explanatory' for x. I've also seen dependent variable (y) and independent variables (x). 
+
+The equation for a linear regression is:
+
+$y = \beta {o} + \beta_{1}x_{1} + \beta_{2}x_{2} + \cdots + \beta_{n}x_{n} + \epsilon $
+
+or, y = Bo + B1x1 + B2x2 + B3x3 + e
+
+y = response variable
+Bo = intercept
+Bx = predictor
+
+It is written like this because this is actually how a linear model is mathematically related. Indeed,
+
+y = response variable
+Bo = intercept
+B = slope of a predictor
+x = data
+e = residual error
+
+This will make more sense when we get into our first model but for now, let's learn about the assumptions of a linear model. 
+
+There are four assumptions that must be met and you will check these assumptions by plotting output of your linear model.
+
+1. linear relationship: y and all x's are related through a linear relationship
+2. independence: residuals are independent
+3. homoscedasticity: the residuals have a constant variance at every level of x
+4. normality: the residuals of the model are normally distributed
+
+As an example of a linear regression, we are going work with a dataset on Galapagos finches from Sato et al. 2000 Mol. Biol. Evol. <http://mbe.oxfordjournals.org/content/18/3/299.full>. I have removed some variables we aren't going to work with and only selected data from one island.
+
+Before we get started, let's check out our data. We have wing length, beak height, and beak length. We also have 11 different species, and males and females for all species. For this lesson, we won't worry about the different species, as we will get into that when we look at mixed effects models. 
+
+```{r}
+
+glimpse(morph)
+
+unique(morph$taxon)
+```
+
+Let's work with wing height and berak length and see if there is a relationship between them (question: is beak height correlated with wing length?)
+
+Assumption #1 can be checked using an exploration plot. 
+
+```{r}
+# make a simple plot between wing length and beak height
+
+ggplot(morph) +
+	geom_point(aes(x = wingl, y = beakh))
+
+```
+
+It does look like a log transformation would help here. We can compare the residuals with and without one when we run a linear model. For now, let's log transform. 
+
+```{r}
+
+ggplot(morph) +
+	geom_point(aes(x = log10(wingl), y = log10(beakh)))
+
+```
+
+Ok, let's run the linear model. In R, the simplest way to fit a simple linear regression is using lm(y~x). This is fitting the equation above (y = Bo + B1x1...).
+
+```{r}
+
+fit1 <- lm(beakh ~ wingl, data = morph)
+
+# that's it! now let's look at the summary
+
+summary(fit1)
+
+```
+
+This is a lot of information! Let's break it down.
+
+'Call' tells us what our equation was. 
+
+'Residuals' tells us the range of our residuals. You roughly want to make sure the min and max and the first and third quartile are equal (but opposite). But, we will examine the residuals in more detail later.
+
+'Coefficients' are the most important bits. This tells you what the intercept and slope are and if your model is significant. 
+
+The '(Intercept)' is the intercept (Bo). This means that when wing length = 0, beak height = -14.4. This seems 		 	unrealistic and gets into another (biological) question. We know wing length will never be 0, but at the same time,  we want our model to be realistic. One thing you can do is center or standardize your explanatory variables, which   will allow you to move the intercept (i.e., move it to 10 cm wing length). Don't worry about this now, but you should know this is an option and you will see this in many papers. Standardizing is especially useful when you want to     compare the relative importance of a predictor against others in the model because it puts all variables in the same  units. 
+
+The 'wingl' is the slope of the best fit line between beak height and wing length. It is = 0.36. So for every increase in wing length, beak height increases by 0.36. 
+
+You could look at p-values to see if this relationship is sgnificant, but people don't really do this anymore. Instead, we look at whether the 95% confidence interval crosses 0. This is of course related to p-values but gets us away from that mindset.
+
+There are a few ways to get the 95% CIs. You could do the math from the summary table (+/- 1.96 * SE). Or you can just use a built-in function.
+```{r}
+
+confint(fit1)
+
+```
+
+This tells us that the 95% CI of the slope (0.31 - 0.40) does not cross 0 and is significant. We don't care as much about the intercept, because this just tells us whether it is different from 0 or not (it usually is).
+
+Now, let's look at some plots to tell us whether our assumptions were met. To do so, use plot(model_object). You will then see options in the console. 
+
+```{r}
+plot(fit1)
+```
+
+The first plot is the residuals vs. fitted and is testing for homoscedasticity and independence. Residuals are equal to the difference between each point and it's predicted value (this will become more clear later). This plot doesn't look great because it seems like there is more spread in the middle of the plot. You should see no patterning -- basically, a scatterplot with no relationship
+
+The second plot is the QQ (Quantile-Quantile) plot -- this is testing for normality. For this, you use the 'fat pen test'. This means that you should be able to cover up the points with a fat pen. This plot looks ok.
+
+The third plot is the scale-location plot and is similar to the first one but here, the residuals are standardized. This amplifies the patterning in the residuals. This plot shows us we may have some issues.
+
+Finally, the fourth plot is showing us whether any data point is exerting leverage on the model fit. You can also test for this by looking at the Cook's distance value of each point. To do this, you want to use the broom package. This package has LOADS of helpful functions for making model output tidy. Since this is an introduction class, we won't go into it but you can read more here: 
+
+```{r}
+tidy_output <- broom::augment(fit1)
+
+# examine tidy_output - what does it give you?
+
+cooksd_fit1 <- tidy_output %>%
+	select(.cooksd)
+
+which(cooksd_fit1$.cooksd > 0.5) # do any points have a cook's d > 0.5?
+
+# notice we use a package name then :: this means that we aren't loading the 
+#entire package but just using a function from it. 
+
+```
+
+So, our model is not bad, but let's see if we can fix some of the patterning in the residuals with a log transformation. 
+```{r}
+
+morph <- morph %>%
+	mutate(log_wingl = log10(wingl),
+				 log_beakh = log10(beakh))
+
+fit2 <- lm(log_beakh ~ log_wingl, data = morph)
+
+summary(fit2)
+
+```
+
+Q: What changed?
+Q: Are beak height and wing length still significantly correlated?
+
+Let's see if this log transformation fixed the patterning in the residuals.
+```{r}
+ 
+plot(fit2)
+
+```
+
+It does look a little better, but isn't that noticeable. Maybe something else is going on (hint: we need to use mixed effects models!). For now, let's plot the fitted line, the 95% CIs and the 95% Prediction Interval. 
+
+The 95% CI and 95% PI are different! 
+
+The CI definition is that if we repeated the study/model/experiment a very large number of times, then 95% of the computed intervals would contain the true parameter value.
+
+It does NOT mean that there is a 95% probability that the true parameter lies within the interval! 
+
+The PI definition is that if we were to measure new, previously unobserved individuals from the same population (not an ecological population but a statistical population), the PI will contain the future observation 95% of the time.
+
+You don't have to use 95%! This is just common. In Bayesian statistics, we report a few different probabilities so the reader can judge for themselves. 
+
+
+Ok, now let's plot. There are many ways to obtain the data behind a fitted line, confidence interval, and prediction interval. I always do it by hand -- this way you learn what is happening!
+
+Let's start with the fit line. We want to obtain the fitted value of y for each value of x. It is somewhat confusing that the function is called 'predict' and not 'fitted'. For other types of models, it is called fitted (you will see this later). This is one thing about R -- packages are developed by different people, so not only are there many ways to do things, but the same action can be called something different depending on what package you are using. Before obtaining the fitted values, the 95% CI, and the 95% PI, you have to set up a new 'dataframe'. For 95% CI, this will just be your x (whatever you used in your lm(y~x)) and for 95% PI, you will want to create a new object that is the same length as your data and has the same range. 
+
+```{r}
+
+newdat_fit <- expand.grid(
+  log_wingl = morph$log_wingl)
+
+# for the 'newdat', the predictors have to be named the EXACT same as in your model
+
+fitted_beakh <- predict(fit2, newdata = newdat_fit) 
+
+```
+
+Because I usually want the fitted values and the CIs, I instead give this function more information. 
+
+
+```{r}
+
+
+fitted_dat_lm <- predict(fit2, newdata = newdat_fit,
+                            interval = "confidence")
+
+# Q: how do these differ?
+```
+
+Now, let's compute the predictions. First, we need to create a new 'dataframe' of new x values to predict from. These are different than your data. Right now, we are only fitting a model with one predictor but if you have more than one, this dataframe would have more columns. 
+
+```{r}
+length_dat <- length(morph$log_wingl)
+min_dat <- min(morph$log_wingl)
+max_dat <- max(morph$log_wingl)
+
+newdat_pred <- expand.grid(
+  log_wingl = seq(from = min_dat, 
+  						to = max_dat, 
+  						length.out = length_dat))
+
+pred_dat_lm <- predict(fit2, newdata = newdat_pred,
+                            interval = "prediction")
+
+```
+
+
+We now want to create some plots. The easiest way to do this is to keep these dataframes separate, but you don't have to. You could add the fitted and predicted values back into morph. We are going to keep them separate since that is what I usually do. ggplot() can pull data from many different dataframes! 
+
+But first, we have to merge our 'newdat' and our respective fitted_dat_lm and pred_dat_lm. To do so, we first need to turn these into dataframes. (Q: What are they?). We then should rename the columns so we know what is what. So let's use a little dplyr magic. Hint: use 'as_tibble()' to coerce them into dataframes and then use rename().
+
+
+```{r}
+
+
+
+```
+
+```{r}
+
+fitted_dat_lm <- fitted_dat_lm %>%
+	as_tibble() %>%
+	rename(fit_upr = upr,
+				 fit_lwr = lwr) 
+
+pred_dat_lm <- pred_dat_lm %>%
+	as_tibble() %>%
+	rename(pred_upr = upr,
+				 pred_lwr = lwr) 
+
+```
+
+Now let's join these dataframes into their respective newdat objects we made earlier. We need to do this because when we plot the fit line and both the confidence and prediction intervals, we will want to use the log_wingl data, which is in newdat. There are many ways to join dataframes together. Enter '? merge' in the console. This is one of my favorties, although dplyr improved on this with the [join family](https://dplyr.tidyverse.org/reference/mutate-joins.html). For our purposes, we can use 'bind_cols' because we are joining dataframes that don't share any data. 
+
+```{r}
+
+fits <- fitted_dat_lm %>%
+	bind_cols(newdat_fit)
+
+preds <- pred_dat_lm %>%
+	bind_cols(newdat_pred)
+
+```
+
+
+Now we are ready to make some plots! We will use ggplot() with geom_point() for the data, geom_line() for the fit line, and geom_ribbon for the confidence and prediction intervals. Plots with ggplot(), especially once you format them for publication, can get really long (lots of lines!). This is because ggplot() builds plots iteratively. This means we have to pay attention to the order in which we add parts to the plot. Let's see how this works and how the plot will change if we don't think about order. 
+
+Another thing to note: because we are pulling from 3 different dataframes, we don't want to specify a dataframe in ggplot() [this would apply it to all subsequent parts of the plot]. Instead, we will want to specify the data for each geom. 
+
+```{r}
+
+ggplot() +  
+	geom_point(data = morph, aes(x = log_wingl, y = log_beakh)) +
+	geom_line(data = fits, aes(x = log_wingl, y = fit)) +
+	geom_ribbon(data = fits, aes(ymin = fit_lwr, ymax = fit_upr, x = log_wingl)) +
+	geom_ribbon(data = preds, aes(ymin = pred_lwr, ymax = pred_upr, x = log_wingl))
+
+```
+
+This plot looks horrible! We can't see anything. We will want to specify lighter colors, play with transparency, and probably start with the intervals and then add the lines and points on top. We will want to start with the prediction interval first since it is the widest. I will build it iteratively below so you can play around with transparency and colors.
+
+```{r}
+
+ggplot() +
+		geom_ribbon(data = preds, aes(ymin = pred_lwr, ymax = pred_upr, x = log_wingl),
+								color = "lightgrey", alpha = 0.2) # alpha is transparency
+
+ggplot() +
+		geom_ribbon(data = preds, aes(ymin = pred_lwr, ymax = pred_upr, x = log_wingl),
+								color = "lightgrey", alpha = 0.2) +
+		geom_ribbon(data = fits, aes(ymin = fit_lwr, ymax = fit_upr, x = log_wingl),
+																color = "grey", alpha = 0.2) 
+
+ggplot() +
+		geom_ribbon(data = preds, aes(ymin = pred_lwr, ymax = pred_upr, x = log_wingl),
+								color = "lightgrey", alpha = 0.2) +
+		geom_ribbon(data = fits, aes(ymin = fit_lwr, ymax = fit_upr, x = log_wingl),
+																color = "grey", alpha = 0.2) +
+		geom_line(data = fits, aes(x = log_wingl, y = fit), size = 0.5) 
+
+
+ggplot() +
+		geom_ribbon(data = preds, aes(ymin = pred_lwr, ymax = pred_upr, x = log_wingl),
+								color = "lightgrey", alpha = 0.2) +
+		geom_ribbon(data = fits, aes(ymin = fit_lwr, ymax = fit_upr, x = log_wingl),
+																color = "grey", alpha = 0.2) +
+		geom_line(data = fits, aes(x = log_wingl, y = fit), size = 0.5) +
+		geom_point(data = morph, aes(x = log_wingl, y = log_beakh), alpha = 0.7, size = 2)
+
+# let's change the x and y axis titles
+
+ggplot() +
+		geom_ribbon(data = preds, aes(ymin = pred_lwr, ymax = pred_upr, x = log_wingl),
+								color = "lightgrey", alpha = 0.2) +
+		geom_ribbon(data = fits, aes(ymin = fit_lwr, ymax = fit_upr, x = log_wingl),
+																color = "grey", alpha = 0.2) +
+		geom_line(data = fits, aes(x = log_wingl, y = fit), size = 0.5) +
+		geom_point(data = morph, aes(x = log_wingl, y = log_beakh), alpha = 0.7, size = 2) +
+		xlab("log10 wing length") +
+		ylab("log10 beak height") 
+
+# let's add a theme
+
+ggplot() +
+		geom_ribbon(data = preds, aes(ymin = pred_lwr, ymax = pred_upr, x = log_wingl),
+								color = "lightgrey", alpha = 0.2) +
+		geom_ribbon(data = fits, aes(ymin = fit_lwr, ymax = fit_upr, x = log_wingl),
+																color = "grey", alpha = 0.2) +
+		geom_line(data = fits, aes(x = log_wingl, y = fit), size = 0.5) +
+		geom_point(data = morph, aes(x = log_wingl, y = log_beakh), alpha = 0.7, size = 2) +
+		xlab("log10 wing length") +
+		ylab("log10 beak height") +
+		theme_classic()
+
+```
+	
+Ok, that plot is starting to look good. We will learn more about customizations later in the last section. 
+
+Let's move on to adding more variables in our linear model. What about sex? The question here could be two-fold. One, do females have a greater beak height for a given size than males? Second, does the relationship between beak height and wing length differ between males and females?
+
+Q: Does anyone know the difference between these two questions? How would we code these models? 
+
+Let's tackle the first question. Let's pretend our dataset already had data on males and females. I will add this in for our purposes. 
+
+```{r}
+
+sex_val <- lower(
+  200,
+  k = 2,
+  x = c("f", "m"),
+  prob = NULL,
+  name = "Lower"
+)
+
+morph <- morph %>%
+	mutate(sex = sex_val)
+
+```
+
+```{r}
+
+fit3 <- lm(log_beakh ~ log_wingl + sex, data = morph)
+
+summary(fit3)
+
+```
+
+Challenge: who wants to try walk me through this output? How similar is it to fit2?
+
+
+
+
+So what is confusing about the lm output in R is how this output is written. We see '(Intercept)', 'log_wingl', and 'sexM'. What this actually means is: intercept-female, slope, difference between intercept-male and intercept female. In words, on the log10 scale, females have a beak height of -3.55 at 0 wing length, males have a beak height of (-3.55 + - 0.02) at 0 wing length, and for every unit increase in wing length, beak height inreases by 2.49 units. 
+
+Let's use some dplyr magic to get this output into a more readable form. 
+```{r}
+
+intercept_female <- coef(fit3)[1] # what does this do?
+intercept_male_diff <- coef(fit3)[3]
+intercept_male <- intercept_female + intercept_male_diff
+slope <- coef(fit3)[2]
+
+fit3_coefs <- cbind(intercept_female, intercept_male, slope)
+
+```
+
+Let's add ine 95% confidence intervals in case you wanted to make a table for a paper
+
+```{r}
+
+intercept_female_lwr <- confint(fit3)[1, 1] # why do I need to specify two numbers here? 
+intercept_female_upr <- confint(fit3)[1, 2] # why do I need to specify two numbers here? 
+
+
+intercept_male_diff_lwr <- confint(fit3)[3, 1]
+intercept_male_diff_upr <- confint(fit3)[3, 2]
+
+
+intercept_male_lwr <- intercept_female_lwr + intercept_male_diff_lwr
+intercept_male_upr <- intercept_female_upr + intercept_male_diff_upr
+
+
+slope_lwr <- confint(fit3)[2, 1]
+slope_upr <- confint(fit3)[2, 2]
+
+```
+
+Let's make a table with all of these values and export them to a .csv.
+
+```{r}
+
+```
+
+Now, let's plot. We have two separate fit lines for males and females, so we will extract fitted values, and the confidence and prediction intervals separately.
+
+```{r}
+
+# first, separate the males and females into separate datasets
+
+morph_females <- morph %>%
+	filter(sex == "f")
+
+morph_males <- morph %>%
+	filter(sex == "m")
+
+# second, create new dat (x values) for each for both fitted and predicted values
+
+# fitted
+females_newdat_fits <- expand.grid(
+	log_wingl = morph_males$log_wingl,
+	sex = "f")
+
+males_newdat_fits <- expand.grid(
+	log_wingl = morph_males$log_wingl,
+	sex = "m")
+
+
+fits_females <- predict(fit3, newdata = females_newdat_fits,
+                            interval = "confidence") %>%
+	bind_cols(females_newdat_fits)
+
+fits_males <- predict(fit3, newdata = males_newdat_fits,
+                            interval = "confidence") %>%
+	bind_cols(males_newdat_fits)
+
+
+# predicted
+
+# females
+len_females <- length(morph_females$log_wingl)
+min_females <- min(morph_females$log_wingl)
+max_females <- max(morph_females$log_wingl)
+
+females_newdat_preds <- expand.grid(
+	log_wingl = seq(from = min_females, to = max_females, length.out = len_females),
+	sex = "f")
+
+preds_females <- predict(fit3, newdata = females_newdat_preds,
+                            interval = "confidence") %>%
+	bind_cols(females_newdat_preds)
+
+
+# males
+len_males <- length(morph_males$log_wingl)
+min_males <- min(morph_males$log_wingl)
+max_males <- max(morph_males$log_wingl)
+
+males_newdat_preds <- expand.grid(
+	log_wingl = seq(from = min_males, to = max_males, length.out = len_males),
+	sex = "m")
+
+preds_males <- predict(fit3, newdata = males_newdat_preds,
+                            interval = "confidence") %>%
+	bind_cols(males_newdat_preds)
+
+
+```
+
+Whew, that was a lot! Now, let's build the plot, making females and males different colors. And, let's just plot the confidence intervals so it is not too busy.
+
+```{r}
+
+ggplot() +
+		geom_ribbon(data = fits_females, aes(ymin = lwr, ymax = upr, x = log_wingl),
+								fill = "green", alpha = 0.2) +
+		geom_ribbon(data = fits_males, aes(ymin = lwr, ymax = upr, x = log_wingl),
+								fill = "orange", alpha = 0.2) +
+		geom_line(data = fits_females, aes(x = log_wingl, y = fit), color = "green") +
+		geom_line(data = fits_males, aes(x = log_wingl, y = fit), color = "orange") +
+		geom_point(data = morph_females, aes( x = log_wingl, y = log_beakh), color = "green") +
+		geom_point(data = morph_males, aes( x = log_wingl, y = log_beakh), color = "orange") +
+		xlab("log10 wing length") +
+		ylab("log10 beak height") +
+		theme_classic()
+
+```
+
+So, females and males do not have a different beak height for a given wing length and of course, the output of our model (go back to summary(fit3)) confirms this. 
+
+But, what if we didn't catch this because they have different slopes (i.e., different relationships between beak height and wing length?). We have to run a different model to ask this question. We have to add an interaction between sex and wing length, which allows the slope between beak height and wing length to differ (and we can see if this difference is significant). 
+
+```{r}
+
+# we can add an interaction by adding the variables together by a :
+fit4 <- lm(log_beakh ~ log_wingl + sex + log_wingl:sex, data = morph)
+
+summary(fit4)
+
+# we can also use a shorthand:
+fit5 <- lm(log_beakh ~ log_wingl * sex,  data = morph)
+
+summary(fit5)
+
+
+
+```
+
+Ok, let's dig into the summary of this. 
+```{r}
+summary(fit4)
+```
+
+Q: Does anyone want to take a stab at what this means? Hint: it is similar to the last one in terms of the names of the coefficients.
+
+Q: Do males and females have significantly different beak heights and a given wing length? (i.e., different intercepts)
+
+Q: Do males and females have a significantly different relationship between beak height and wing length?
+
+Let's plot! The code will look very similar to the previous code for the model with no interaction. Reminder: we already have our morph datasets separated by males and females.
+
+```{r}
+
+# fitted
+females_newdat_fits <- expand.grid(
+	log_wingl = morph_males$log_wingl,
+	sex = "f")
+
+males_newdat_fits <- expand.grid(
+	log_wingl = morph_males$log_wingl,
+	sex = "m")
+
+
+fits_females_int <- predict(fit4, newdata = females_newdat_fits, # calling this object something else
+                            interval = "confidence") %>%
+	bind_cols(females_newdat_fits)
+
+fits_males_int <- predict(fit4, newdata = males_newdat_fits,
+                            interval = "confidence") %>%
+	bind_cols(males_newdat_fits)
+
+
+# predicted
+
+# females
+len_females <- length(morph_females$log_wingl)
+min_females <- min(morph_females$log_wingl)
+max_females <- max(morph_females$log_wingl)
+
+females_newdat_preds <- expand.grid(
+	log_wingl = seq(from = min_females, to = max_females, length.out = len_females),
+	sex = "f")
+
+preds_females_int <- predict(fit4, newdata = females_newdat_preds,
+                            interval = "confidence") %>%
+	bind_cols(females_newdat_preds)
+
+
+# males
+len_males <- length(morph_males$log_wingl)
+min_males <- min(morph_males$log_wingl)
+max_males <- max(morph_males$log_wingl)
+
+males_newdat_preds <- expand.grid(
+	log_wingl = seq(from = min_males, to = max_males, length.out = len_males),
+	sex = "m")
+
+preds_males_int <- predict(fit4, newdata = males_newdat_preds,
+                            interval = "confidence") %>%
+	bind_cols(males_newdat_preds)
+
+```
+
+Let's plot.
+```{r}
+ggplot() +
+		geom_ribbon(data = fits_females_int, aes(ymin = lwr, ymax = upr, x = log_wingl),
+								fill = "green", alpha = 0.2) +
+		geom_ribbon(data = fits_males_int, aes(ymin = lwr, ymax = upr, x = log_wingl),
+								fill = "orange", alpha = 0.2) +
+		geom_line(data = fits_females_int, aes(x = log_wingl, y = fit), color = "green") +
+		geom_line(data = fits_males_int, aes(x = log_wingl, y = fit), color = "orange") +
+		geom_point(data = morph_females, aes( x = log_wingl, y = log_beakh), color = "green") +
+		geom_point(data = morph_males, aes( x = log_wingl, y = log_beakh), color = "orange") +
+		xlab("log10 wing length") +
+		ylab("log10 beak height") +
+		theme_classic()
+```
+
+Q: Does this look different?
+
+Ok, one more thing I want to show you before we move on to mixed effects models. What if we had two continuous variables? How would we obtain fitted and predicted values and plot? 
+
+Let's pretend that we had mass data already in the dataset. I am going to simulate it and add it to our morph dataset.
+```{r}
+mass <- rnorm(n = 200, mean = 100, sd = 3)
+
+morph$mass <- mass # another way to add a column
+```
+
+Let's fit a model with beak height varying with wing length and mass. 
+```{r}
+morph <- morph %>%
+	mutate(log_mass = log10(mass))
+
+fit6 <- lm(log_beakh ~ log_wingl * log_mass, data = morph)
+
+summary(fit6)
+```
+
+Q: What does this output mean?
+
+Let's obtain the fitted values and the confidence and prediction intervals. We have to decide what factor we are plotting on the x-axis. Let's first plot mass on the x-axis and then plot wing length on the x-axis. When you are obtaining fitted and predicted values, you hold the other predictor(s) (x variables) at their mean.
+```{r}
+
+new_dat_mass_fits <- expand_grid(
+	log_wingl = mean(morph$log_wingl),
+	log_mass = morph$log_mass
+)
+
+fit6_mass_fits <- as_tibble(
+	predict(fit6, newdata = new_dat_mass_fits, interval = "confidence")) %>%
+	bind_cols(new_dat_mass_fits)
+
+new_dat_mass_preds <- expand_grid(
+	log_wingl = mean(morph$log_wingl),
+	log_mass = seq(from = min(morph$log_mass), 
+								 to = max(morph$log_mass), 
+								 length.out = nrow(morph)))
+
+fit6_mass_preds <- as_tibble(
+	predict(fit6, newdata = new_dat_mass_preds, interval = "prediction"))  %>%
+	bind_cols(new_dat_mass_preds)
+
+# plot
+
+ggplot() +
+		geom_ribbon(data = fit6_mass_preds, aes(ymin = lwr, ymax = upr, x = log_mass),
+								fill = "lightgrey", alpha = 0.2) +
+		geom_ribbon(data = fit6_mass_fits, aes(ymin = lwr, ymax = upr, x = log_mass),
+								fill = "lightgrey", alpha = 0.6) +
+		geom_line(data = fit6_mass_fits, aes(x = log_mass, y = fit), color = "black") +
+		geom_point(data = morph, aes( x = log_mass, y = log_beakh), color = "black") +
+		xlab("log10 mass") +
+		ylab("log10 beak height") +
+		theme_classic()
+
+```
+
+Clearly, beak height is not well predicted my mass. That's ok! Now, let's plot wing height on the x-axis.
+
+```{r}
+
+new_dat_wingl_fits <- expand_grid(
+	log_wingl = morph$log_wingl,
+	log_mass = mean(morph$log_mass)
+)
+
+fit6_wingl_fits <- as_tibble(
+	predict(fit6, newdata = new_dat_wingl_fits, interval = "confidence")) %>%
+	bind_cols(new_dat_wingl_fits)
+
+new_dat_wingl_preds <- expand_grid(
+	log_wingl = seq(from = min(morph$log_wingl), 
+								 to = max(morph$log_wingl), 
+								 length.out = nrow(morph)),
+	log_mass = mean(morph$log_mass))
+
+fit6_wingl_preds <- as_tibble(
+	predict(fit6, newdata = new_dat_wingl_preds, interval = "prediction"))  %>%
+	bind_cols(new_dat_wingl_preds)
+
+# plot
+
+ggplot() +
+		geom_ribbon(data = fit6_wingl_preds, aes(ymin = lwr, ymax = upr, x = log_wingl),
+								fill = "lightgrey", alpha = 0.2) +
+		geom_ribbon(data = fit6_wingl_fits, aes(ymin = lwr, ymax = upr, x = log_wingl),
+								fill = "lightgrey", alpha = 0.6) +
+		geom_line(data = fit6_wingl_fits, aes(x = log_wingl, y = fit), color = "black") +
+		geom_point(data = morph, aes( x = log_wingl, y = log_beakh), color = "black") +
+		xlab("log10 wing length") +
+		ylab("log10 beak height") +
+		theme_classic()
+
+```
+
+This looks much better but we still have a weird pattern. Let's explore this in the next lesson.

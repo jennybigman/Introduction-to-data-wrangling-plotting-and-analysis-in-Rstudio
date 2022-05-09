@@ -1,0 +1,120 @@
+---
+title: "02 - importing data"
+author: "Jenny Bigman"
+date: "5/2/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE, error= TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(knitr, tidyverse, here)
+```
+
+# Set up
+
+Let's load the packages we will need. Packages contain useful code that is written by other people for our use. We will install (install.packages()) and load (library()) the 'tidyverse' package, which loads all packages in the 'tidyverse' (see: https://www.tidyverse.org/packages/). These are very useful for data wrangling and visualization. 
+
+```{r}
+
+install.packages("tidyverse", repos = 'https://cran.rstudio.com')
+
+library(tidyverse)
+
+```
+
+
+# R projects and working directories
+
+Your working directory is where Rstudio is reading files from and saving files to. It is easiest to create a new Rproject for each project (e.g., a thesis chapter, a paper, etc.) and then your working directory will be set to the Rproject. For example, I shared this Rproject with you -- it is called "Introduction to data wrangling, visualization, and analysis". In the Files pane, you will see a little blue cube with an R in the middle; that is the symbol for an Rproject. To create a new Rproject, go to File > New Project and create it where you'd like it on your computer. 
+
+# Let's import some data and learn about data classes
+
+The data we are going to work with is in the 'data' folder in our Rproject. Let's read it in from there.
+
+```{r}
+dat <- read_csv(here("./data/portal_data_joined.csv"))
+
+dat <- dat %>%
+	rename(species_name = species)
+
+```
+
+Q: What would happen if we didn't specify the data folder (e.g. dat <- read.csv("portal_data_joined.csv)?)
+
+Q: What do you think the 'here' function does in the call to import a dataframe?
+
+Ok, now we have some data. Let's look at its structure. There are many ways to do this. Let's try a few of my favorites. 
+
+```{r}
+glimpse(dat)
+
+str(dat)
+
+nrow(dat)
+
+names(dat)
+
+head(dat)
+
+tail(dat)
+```
+
+Q: What do these functions tell you?
+
+There are different classes of data -- numeric, chatacter, logical, factor. Let's look at the structure of the dataframe and notice what types of data columns are. 
+
+```{r}
+glimpse(dat)
+```
+
+<chr> is character. What is <dbl>? It means numeric but is a blanket category for numbers with and without decimals. 
+
+There are two data types that are not present in the dataframe. Let's add them! You can only add a variable if it has the same number of values (rows) of the others. Let's figure out how many rows we have, create a logical variable (TRUE/FALSE) and a factor variable, and add them to the dataframe. A factor is a special kind of class of variable. Typically, you would use factors for categorical variables (e.g., days of the week, groups). Factors are stored in R as a vector of integers with a corresponding set of character values. They can be confusing and cause issues -- I don't use them that often but something to know about. They can be helpful for plotting when you are trying to order plots in a specific order.
+
+```{r, error = TRUE}
+# how many rows are in the dataframe (we can comment and annotate our code with '#')
+
+nrow(dat)
+
+# let's make this an object so we can use it later
+num_rows <- nrow(dat) # assigning the number of rows to an object called 'num_rows'
+
+# create a vector of logicals equal to the number of rows in the dataset
+logical_var <- sample(c(TRUE, FALSE), num_rows, replace = TRUE) 
+length(logical)
+
+# create a vector of a factors equal to the number of rows in the dataset
+day_of_week <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
+								 "Saturday", "Sunday")
+factor_var <- as.factor(rep(day_of_week, num_rows/(length(day_of_week))))
+length(factor_var)
+
+# let's add these variables into the dataframe
+dat2 <- dat %>%
+	mutate(logical_var = logical_var,
+				 factor_var = factor_var)
+
+# What happened?
+
+# The factor length wasn't the same as the dataframe. 
+# This is because we tried to repeat a vector of length 7 (days of the week) by a number that was not a multiple of 7.
+
+# What can we do?
+
+# Add additional values to the day of week vector!
+
+nrow(dat) - length(factor_var)
+add_days <- c("Monday", "Tuesday", "Wednesday")
+factor_var2 <- append(factor_var, add_days)
+
+dat2 <- dat %>%
+	mutate(logical_var = logical_var,
+				 factor_var = factor_var2)
+
+names(dat2)
+
+```
+
+Q: Why are we using 'length()' instead of 'nrow()' in the code chunk above?
+
+There are other forms of data you will likely come across or work with. We have worked with dataframes (2D) as of know. There are also lists, matrices, and arrays. which are useful. To start, you will likely work with dataframes for a while but it is good to know about the other forms.

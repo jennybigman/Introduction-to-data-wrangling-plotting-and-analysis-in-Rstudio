@@ -1,0 +1,308 @@
+---
+title: "05 - exploration plots with ggplot"
+author: "Jenny Bigman"
+date: "5/12/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load(knitr, tidyverse, here, Rcolorbrewer)
+
+dat <- read_csv(here("./data/portal_data_joined.csv"))
+
+dat <- dat %>%
+	rename(species_name = species) %>%
+	mutate(log_hindfoot_length = log10(hindfoot_length))
+```
+
+
+ggplot() is a plotting package based on the grammar of graphics. This is the most used plotting package, although some people still use baseplot (gasp!). Baseplot encompasses the built in plotting functionality in R. Don't ask me anything about baseplot -- I've NEVER used it! These days, ggplot is standard.
+
+The current package version is ggplot2, but when calling ggplot, you will just use ggplot(). There is probably more documentation on ggplot compared to any other function or package in all of the R ecosystem! A few helpful resources:
+
+[ggplot cheatsheet](https://www.rstudio.com/resources/cheatsheets/)
+[R documentation for ggplot](https://ggplot2.tidyverse.org/)
+[Carpentries ggplot lesson](https://datacarpentry.org/R-ecology-lesson/04-visualization-ggplot2.html)
+
+There are also (free) books on this topic:
+[Hadley Wickham's book](https://ggplot2-book.org/) 
+[R Graphics Cookbook](http://www.cookbook-r.com/Graphs/)
+
+[A great document for more ggplot written by Sean Anderson](http://seananderson.ca/ggplot2-FISH554/)
+
+For when you become more advanced:
+[ggplot extensions](https://exts.ggplot2.tidyverse.org/gallery/)
+
+
+Let's get started. 
+
+ggplot() layers upon it self, so the first command is always ggplot(). Then, you add a geom. There are SO MANY geoms. The most common are: geom_point(), geom_line() + geom_histogram(), geom_ribbon(), geom_boxplot(), geom_pointrange(). Let's try a few.
+```{r}
+# geom histogram -- let's build a histogram of hindfoot lengths
+
+ggplot() +
+	geom_histogram(data = dat, aes(hindfoot_length))
+
+# we get some warnings -- first, pick better binwidths and second, 3348 rows were removed.
+# Why?
+
+# you can put the data and mapping (aes -- aesthetics) 
+#in the ggplot() call and get the same plot
+
+ggplot(data = dat, aes(hindfoot_length)) +
+	geom_histogram()
+
+# the difference is that anything in the () associated with 'ggplot' 
+# are now global -- they will relate to anything else you add
+
+# in contrast, if you put the data in the geom specifically,
+# it will only apply to that geom
+
+# this is useful for when you want to add additional 
+# datasets to the same plot! we will do this later.
+
+# you can save your plot to an object
+
+hindft_hist <- ggplot(data = dat, aes(hindfoot_length)) +
+	geom_histogram()
+
+# nothing happens when you run the above! 
+# to see the plot, call the object
+
+hindft_hist
+
+# we will learn more about themes and other customizations in the last lesson
+# for right now, use theme_classic()
+
+hindft_hist <- ggplot(data = dat, aes(hindfoot_length)) +
+	geom_histogram() +
+	theme_classic()
+
+hindft_hist
+
+# what changed?
+
+# save your plot to your working directory
+
+ggsave(hindft_hist, file = "hindft_hist.png",
+			 height = 10, width = 10)
+
+# you can also integrate the %>% with ggplot 
+# (I don't do this very often because I'm usually saving 
+# plots to objects so I can save them to my local machine)
+
+dat %>%
+	ggplot(aes(hindfoot_length)) +
+	geom_histogram() +
+	theme_classic()
+```
+
+Let's build a scatterplot.
+```{r}
+
+ggplot() +
+	geom_point(data = dat, aes(x = weight, y = hindfoot_length))
+
+# what if we wanted to color this by species?
+
+ggplot() +
+	geom_point(data = dat, aes(x = weight, y = hindfoot_length, color = species_name))
+
+# later, we will see how to assess whether there is a relationship between
+# hindfoot_length and weight and how to plot that relationship
+
+# what if you wanted to plot the logged hindfoot data?
+
+ggplot() +
+	geom_point(data = dat, aes(x = weight, y = log_hindfoot_length, color = species_name))
+
+# or,
+
+ggplot() +
+	geom_point(data = dat, aes(x = weight, y =log10(hindfoot_length), color = species_name))
+
+
+```
+
+What about a time series? Do the number of plots per year change?
+```{r}
+
+# we first have to do a bit of summarizing
+
+plot_sum <- dat %>%
+	group_by(plot_id, year) %>%
+	summarize(n()) %>%
+	rename(count = 'n()')
+
+ggplot(plot_sum) +
+	geom_line(aes(x = year, y = count, group = plot_id))
+
+# we just used 'group', not 'color'
+
+ggplot(plot_sum) +
+	geom_line(aes(x = year, y = count, group = plot_id, color = plot_id))
+
+# we can change the colors (we will get more into this later)
+length(unique(dat$plot_id)) # how many unique plot types are there
+
+# let's use Rcolorbrewer]
+#(https://cran.r-project.org/web/packages/RColorBrewer/RColorBrewer.pdf) to get new colors
+
+#install.packages("Rcolorbrewer")
+#library(RColorBrewer) # remember you have to install and load packages
+
+# to get individual color hex codes, color-hex.com is FAB!
+
+colfunc <- colorRampPalette(c("#00c913", "#000000")) 
+# this will give us 24 colors between green and black
+# will look yucky, but just for show
+col_list <- colfunc(24)
+
+# will have to create a factor of plot_id
+
+dat <- dat %>%
+	mutate(plot_id_f = as.factor(plot_id))
+
+plot_sum <- dat %>%
+	group_by(plot_id, plot_id_f, year) %>%
+	summarize(n()) %>%
+	rename(count = 'n()')
+
+ggplot(plot_sum) +
+	geom_line(aes(x = year, y = count, group = plot_id, color = plot_id_f)) +
+	scale_color_manual(values = col_list)
+
+# Why do you think we had to turn plot_id into a factor?
+
+```
+
+a good guide to different ways to add color -- we will look at some of these later.
+https://stackoverflow.com/questions/70942728/understanding-color-scales-in-ggplot2
+
+Note this link takes you to stackoverflow. 99.9% of the time, you can find the answer to your coding issue there. 
+
+Let's look at some other types of plots.
+
+```{r}
+
+# boxplot
+
+ggplot(dat) +
+	geom_boxplot(aes(x = species_name, y = hindfoot_length))
+
+```
+
+Challenge: How would you add color to this?
+```{r}
+
+```
+
+
+```{r}
+
+ggplot(dat) +
+	geom_boxplot(aes(x = species_name, y = hindfoot_length, color = species_name))
+
+```
+
+Challenge: What if you want to remove the species with no data? How would you do this?
+```{r}
+
+```
+
+
+```{r}
+
+dat_no_NA <- na.omit(dat)
+
+ggplot(dat_no_NA) +
+	geom_boxplot(aes(x = species_name, y = hindfoot_length, color = species_name))
+
+```
+
+
+Let's add points to our boxplot. Then we can see why it is useful to pay attention to the positioning of the dataset and the geoms. 
+```{r error= TRUE}
+
+ggplot(dat_no_NA) +
+	geom_boxplot(aes(x = species_name, y = hindfoot_length, color = species_name)) +
+	geom_point()
+
+# why do we get an error?
+
+ggplot(dat_no_NA, 
+			 aes(x = species_name, y = hindfoot_length, color = species_name)) +
+	geom_boxplot() +
+	geom_point()
+
+# why did we not get an error?
+
+# let's make some of the points translucent
+ggplot(dat_no_NA, 
+			 aes(x = species_name, y = hindfoot_length, color = species_name)) +
+	geom_boxplot() +
+	geom_point(alpha = 0.2)
+
+# what if we wanted the points in the background? switch the order! ggplot is iterative
+ggplot(dat_no_NA, 
+			 aes(x = species_name, y = hindfoot_length, color = species_name)) +
+	geom_point(alpha = 0.2) +
+	geom_boxplot() 
+
+# we can 'jitter' the points so they aren't all on top of each other
+ggplot(dat_no_NA, 
+			 aes(x = species_name, y = hindfoot_length, color = species_name)) +
+	geom_jitter(alpha = 0.2) +
+	geom_boxplot() 
+
+```
+
+
+Let's look at pointrange. This is helpful when you want to plot error around a data point. We will have to do some data wrangling to get our data in the format we want for this plot.
+
+```{r}
+
+point_error_dat <- dat %>%
+	na.omit() %>%
+	group_by(species_name) %>%
+	summarise(mean_hfl = mean(hindfoot_length),
+						sd_hfl = sd(hindfoot_length),
+						lwr = mean_hfl - sd_hfl,
+						upr = mean_hfl + sd_hfl)
+
+# plot the mean + and - 1 SD
+
+ggplot(point_error_dat) +
+	geom_pointrange(aes(x = species_name,
+											y = mean_hfl,
+											ymin = lwr,
+											ymax = upr))
+											
+
+```
+
+
+
+One cool thing in ggplot is faceting. You can easily make several plots by group.
+```{r}
+
+ggplot(dat_no_NA, aes(x = weight, y = hindfoot_length)) +
+	geom_point() +
+	facet_wrap(~ species_name)
+
+# there is also facet_grid, which is helpful for defining rows and columns
+
+ggplot(dat_no_NA, aes(x = weight, y = hindfoot_length)) +
+	geom_point() +
+	facet_grid(sex ~ species_name)
+
+# what do you think facet_wrap does given you see what facet_grid does?
+
+# these are fully customizable and we will go over that later
+
+```
+
+
+That is it for now. Let's move into data analysis! 

@@ -20,7 +20,7 @@ dat <- dat %>%
 
 ggplot() is a plotting package based on the grammar of graphics. This is the most used plotting package, although some people still use baseplot (gasp!). Baseplot encompasses the built in plotting functionality in R. Don't ask me anything about baseplot -- I've NEVER used it! These days, ggplot is standard.
 
-The current package version is ggplot2, but when calling ggplot, you will just use ggplot(). There is probably more documentation on ggplot compared to any other function or package in all of the R ecosystem! A few helpful resources:
+The current package version is ggplot2, but when calling ggplot, you will just use `ggplot()`. There is probably more documentation on ggplot compared to any other function or package in all of the R ecosystem! A few helpful resources:
 
 [ggplot cheatsheet](https://www.rstudio.com/resources/cheatsheets/)
 [R documentation for ggplot](https://ggplot2.tidyverse.org/)
@@ -38,7 +38,7 @@ For when you become more advanced:
 
 Let's get started. 
 
-ggplot() layers upon it self, so the first command is always ggplot(). Then, you add a geom. There are SO MANY geoms. The most common are: geom_point(), geom_line() + geom_histogram(), geom_ribbon(), geom_boxplot(), geom_pointrange(). Let's try a few.
+`ggplot()` layers upon it self, so the first command is always `ggplot()`. Then, you add a `geom()`. There are SO MANY geoms. The most common are: `geom_point()`, `geom_line()`, `geom_histogram()`, `geom_ribbon()`, `geom_boxplot()`, `geom_pointrange()`. Let's try a few.
 ```{r}
 # geom histogram -- let's build a histogram of hindfoot lengths
 
@@ -101,12 +101,10 @@ dat %>%
 
 Let's build a scatterplot.
 ```{r}
-
 ggplot() +
 	geom_point(data = dat, aes(x = weight, y = hindfoot_length))
 
 # what if we wanted to color this by species?
-
 ggplot() +
 	geom_point(data = dat, aes(x = weight, y = hindfoot_length, color = species_name))
 
@@ -114,23 +112,18 @@ ggplot() +
 # hindfoot_length and weight and how to plot that relationship
 
 # what if you wanted to plot the logged hindfoot data?
-
 ggplot() +
 	geom_point(data = dat, aes(x = weight, y = log_hindfoot_length, color = species_name))
 
 # or,
-
 ggplot() +
 	geom_point(data = dat, aes(x = weight, y =log10(hindfoot_length), color = species_name))
-
-
 ```
 
 What about a time series? Do the number of plots per year change?
 ```{r}
 
 # we first have to do a bit of summarizing
-
 plot_sum <- dat %>%
 	group_by(plot_id, year) %>%
 	summarize(n()) %>%
@@ -140,7 +133,6 @@ ggplot(plot_sum) +
 	geom_line(aes(x = year, y = count, group = plot_id))
 
 # we just used 'group', not 'color'
-
 ggplot(plot_sum) +
 	geom_line(aes(x = year, y = count, group = plot_id, color = plot_id))
 
@@ -156,12 +148,11 @@ length(unique(dat$plot_id)) # how many unique plot types are there
 # to get individual color hex codes, color-hex.com is FAB!
 
 colfunc <- colorRampPalette(c("#00c913", "#000000")) 
+col_list <- colfunc(24)
 # this will give us 24 colors between green and black
 # will look yucky, but just for show
-col_list <- colfunc(24)
 
-# will have to create a factor of plot_id
-
+# will have to create a factor of plot_id (one useful purpose of factors)
 dat <- dat %>%
 	mutate(plot_id_f = as.factor(plot_id))
 
@@ -175,23 +166,19 @@ ggplot(plot_sum) +
 	scale_color_manual(values = col_list)
 
 # Why do you think we had to turn plot_id into a factor?
-
 ```
 
 a good guide to different ways to add color -- we will look at some of these later.
 https://stackoverflow.com/questions/70942728/understanding-color-scales-in-ggplot2
 
-Note this link takes you to stackoverflow. 99.9% of the time, you can find the answer to your coding issue there. 
+Note this link takes you to stackoverflow. 99.9% of the time, you can find the answer to your coding issue there. I probably look up something on stackoverflow everyday!
 
 Let's look at some other types of plots.
 
 ```{r}
-
 # boxplot
-
 ggplot(dat) +
 	geom_boxplot(aes(x = species_name, y = hindfoot_length))
-
 ```
 
 Challenge: How would you add color to this?
@@ -214,7 +201,6 @@ Challenge: What if you want to remove the species with no data? How would you do
 
 
 ```{r}
-
 dat_no_NA <- na.omit(dat)
 
 ggplot(dat_no_NA) +
@@ -223,7 +209,9 @@ ggplot(dat_no_NA) +
 ```
 
 
+
 Let's add points to our boxplot. Then we can see why it is useful to pay attention to the positioning of the dataset and the geoms. 
+
 ```{r error= TRUE}
 
 ggplot(dat_no_NA) +
@@ -256,7 +244,6 @@ ggplot(dat_no_NA,
 			 aes(x = species_name, y = hindfoot_length, color = species_name)) +
 	geom_jitter(alpha = 0.2) +
 	geom_boxplot() 
-
 ```
 
 
@@ -273,27 +260,21 @@ point_error_dat <- dat %>%
 						upr = mean_hfl + sd_hfl)
 
 # plot the mean + and - 1 SD
-
 ggplot(point_error_dat) +
 	geom_pointrange(aes(x = species_name,
 											y = mean_hfl,
 											ymin = lwr,
 											ymax = upr))
-											
-
 ```
 
-
-
 One cool thing in ggplot is faceting. You can easily make several plots by group.
-```{r}
 
+```{r}
 ggplot(dat_no_NA, aes(x = weight, y = hindfoot_length)) +
 	geom_point() +
 	facet_wrap(~ species_name)
 
 # there is also facet_grid, which is helpful for defining rows and columns
-
 ggplot(dat_no_NA, aes(x = weight, y = hindfoot_length)) +
 	geom_point() +
 	facet_grid(sex ~ species_name)
@@ -301,8 +282,6 @@ ggplot(dat_no_NA, aes(x = weight, y = hindfoot_length)) +
 # what do you think facet_wrap does given you see what facet_grid does?
 
 # these are fully customizable and we will go over that later
-
 ```
-
 
 That is it for now. Let's move into data analysis! 

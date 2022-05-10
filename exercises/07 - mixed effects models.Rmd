@@ -1,16 +1,18 @@
 ---
 title: "07 - mixed effects models"
 author: "Jenny Bigman"
-date: "5/8/2022"
+date: "5/12/2022"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-pacman::p_load(nlme, lme4, tidyverse)
+pacman::p_load(nlme, lme4, tidyverse, here)
 
-morph <- read_csv(here("./data/morph.csv"))
+morph <- read_csv(here("./data/morph.csv")) %>%
+	mutate(log_beakh = log10(beakh),
+				 log_wingl = log10(wingl))
 
 ```
 
@@ -71,17 +73,17 @@ There are two packages for mixed effects models. nlme and lme4. You can use eith
 
 The basic syntax for random intercepts:
 
-# nlme::lme() 
-y ~ x, random = ~1 | group 
-y ~ x, random = ~1 + x | group 
-y ~ x, random = ~1 | group/subgroup 
-y ~ x, random = list(1 = ~group, 1 = ~subgroup)
+### nlme::lme()   
+y ~ x, random = ~1 | group   
+y ~ x, random = ~1 + x | group   
+y ~ x, random = ~1 | group/subgroup   
+y ~ x, random = list(1 = ~group, 1 = ~subgroup)  
 
-# lme4::lmer() 
-y ~ x + (1 | group) 
-y ~ x + (1 + x | group) 
-y ~ x + (1 | group/subgroup) 
-y ~ x + (1 | group) + (1 | group:subgroup)
+### lme4::lmer()   
+y ~ x + (1 | group)   
+y ~ x + (1 + x | group)   
+y ~ x + (1 | group/subgroup)   
+y ~ x + (1 | group) + (1 | group:subgroup)  
 
 ```{r}
 ran_int <-  lmer(log_beakh ~ log_wingl + (1 | taxon), data = morph)
@@ -207,7 +209,7 @@ It does look the slopes are different by species. The question here is whether t
 
 In our last mixed effects model (`lmer(log_beakh ~ log_wingl + (1 | taxon), data = morph)`), we assumed that the slopes were constant across taxa. Now, let's let them vary by taxa. 
 
-```{r}
+```{r, message = FALSE}
 
 ran_slope <-  lmer(log_beakh ~ log_wingl + (1 + log_wingl | taxon), data = morph)
 ```
@@ -229,6 +231,17 @@ head(morph)
 ggplot(morph, aes(log_wingl, log_beakh, colour = taxon)) +
   geom_point(alpha = 0.1) + # alpha = 0.1 make 10% opaque
   geom_line(aes(y = ran_slope_fits))
+
+# save this for next lesson
+
+mem_plot1 <- 
+	ggplot(morph, aes(log_wingl, log_beakh, colour = taxon)) +
+  geom_point(alpha = 0.1) + # alpha = 0.1 make 10% opaque
+  geom_line(aes(y = ran_slope_fits))
+
+ggsave(mem_plot1, file = "mem_plot1.png",
+			 width = 5, height = 5, units = "in")
+
 ```
 
 That looks great! We can see that the fit lines now fit the data well. Let's add a population-level fit line.

@@ -1,0 +1,389 @@
+---
+title: "08 - publication quality plots using ggplot"
+author: "Jenny Bigman"
+date: "5/12/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load(RColorBrewer, tidyverse, here, patchwork, lme4)
+
+morph <- read_csv(here("./data/morph.csv")) %>%
+	mutate(log_beakh = log10(beakh),
+				 log_wingl = log10(wingl))
+
+ran_slope <-  lmer(log_beakh ~ log_wingl + (1 + log_wingl | taxon), data = morph)
+morph$ran_slope_fits <- predict(ran_slope)
+
+mem_plot1 <- 
+	ggplot(morph, aes(log_wingl, log_beakh, colour = taxon)) +
+  geom_point(alpha = 0.1) + # alpha = 0.1 make 10% opaque
+  geom_line(aes(y = ran_slope_fits))
+
+```
+
+Let's learn how to modify a plot to make it ready for publication in a journal. The `theme()` function has endless arguments you can call to customize your plot. There are built-in themes (we have used one, `theme_classic()`, but you can also modify (probably) any component. Look here: https://ggplot2.tidyverse.org/reference/theme.html. Keep in mind, not all modifcations will be in the theme function.
+
+Let's work with the plot we saved from the last exercise and start with a few simple modifications. We've already learned how to rename our axes, but let's work on formatting them. 
+
+```{r}
+mem_plot1 
+
+# we want log10 to show up as log(subscript 10)
+
+# many ways to do this, here's one
+
+x_lab <- expression(paste(log[10], " wing length")) 
+# why the extra space before wing
+y_lab <- expression(paste(log[10], " beak height"))
+
+# if you wanted to do a superscript instead
+#super <- expression(paste(x^{10}, " x wing length"))
+
+	mem_plot1 +
+		labs(x = x_lab, y = y_lab) 
+
+```
+
+Let's modify components of the theme. To do so, you will specify an argument (e.g., `axis.title()`) and then specify an element (e.g., `element_line()`, `element_rect()`, `element_text()`, or `element_blank()`). Which of these elements you use depends on the argument. For example, if you want to modify the size of text, this is a text element (use `element_text()`). Then, you'd fill in a few more arguments (e.g., `size = 16`). If you don't want a given component (axis labels, panel.grid, etc) use `element_blank()` (with nothing in the parentheses). You can also specify which axis you want to change if you do not want to change both (e.g., `axis.line.x = element_line()` will change the x axis and `axis.line = element_line()` will change both). Let's play around with this. 
+
+```{r}
+	mem_plot1 +
+		labs(x = x_lab, y = y_lab) +
+		theme(
+			axis.title = element_text(size = 14, color = "grey50"),
+			panel.grid.major = element_blank(),
+			panel.grid.minor = element_blank(),
+			panel.background = element_rect(fill = "transparent"),
+    	plot.background = element_rect(fill = "transparent", color = NA),
+			axis.line.x = element_line(color = "grey50"))
+
+# both axes, black background, white text
+	mem_plot1 +
+		labs(x = x_lab, y = y_lab) +
+		theme(
+			axis.title = element_text(size = 14, color = "white"),
+			axis.ticks = element_line(color = "white"),
+			axis.text = element_text(size = 12, color = "white"),
+			axis.line = element_line(color = "white"),
+			panel.grid = element_blank(),
+			panel.background = element_rect(fill = "black"),
+    	plot.background = element_rect(fill = "black"))
+```
+
+Let's deal with the legend. Even though the legend is in the theme section, it works a little differently. To remove it, you specify `legend.position = "none"`. 
+```{r}
+	mem_plot1 +
+		labs(x = x_lab, y = y_lab) +
+		theme(
+			axis.title = element_text(size = 14, color = "white"),
+			axis.ticks = element_line(color = "white"),
+			axis.text = element_text(size = 12, color = "white"),
+			axis.line = element_line(color = "white"),
+			panel.grid = element_blank(),
+			panel.background = element_rect(fill = "black"),
+    	plot.background = element_rect(fill = "black"),
+			legend.position = "none")
+```
+
+Now we can add some text. 
+```{r}
+black_mem_plot <- mem_plot1 +
+		labs(x = x_lab, y = y_lab) +
+		theme(
+			axis.title = element_text(size = 14, color = "white"),
+			axis.ticks = element_line(color = "white"),
+			axis.text = element_text(size = 12, color = "white"),
+			axis.line = element_line(color = "white"),
+			panel.grid = element_blank(),
+			panel.background = element_rect(fill = "black"),
+    	plot.background = element_rect(fill = "black"),
+			legend.position = "none")
+
+black_mem_plot +
+	annotate(geom = "text", x = 1.85, y = 1.15,
+					 label = "Geospiza fortis", color = "green", 
+					 fontface = "italic")
+```
+
+Let's change the names of the species though because that's a lot of text. We have to go outside of the `theme()` function.
+
+```{r}
+mem_plot1 +
+		labs(x = x_lab, y = y_lab) +
+		scale_color_discrete(name="Species", 
+    labels = c("C. parvulus",
+    					 "C. pauper",
+    					 "C. psittacula",
+    					 "G. fortis",
+    					 "G. fortis fortis",
+    					 "G. fuliginosa",
+    					 "G fuliginosa parvula",
+    					 "G prosthemals prosthemales",
+    					 "G. scandens",
+    					 "G. scandens scandens"))
+```
+
+This brings us to `scale_*_` arguments. They can be very useful but also frustrating. I often use them to change the axes. The main uses of these functions are for changing the axis scale (name, limits, breaks, labels) and specifying specific colors. We already used one such function above (`scale_color_discrete()`).
+
+Let's first look at `scale_*_continuous`. We want better axis labels for our plot since right now, we have only two in log form.
+```{r}
+
+10^min(morph$log_wingl)
+10^max(morph$log_wingl)
+# this is the range of our plot
+
+mem_plot1 +
+	scale_x_continuous(
+		name = "wing length", # change back to just wing length
+		breaks = c(log10(60), log10(65), log10(70), log10(75)),
+		labels = c(60, 65, 70, 75),
+		limits= c(1.77, 1.893)
+	) 
+```
+
+Let's change the colors of the species. Say we want to use an already existing color palette (there are many of these!). I like using R Color Brewer (we did this in the exploration plot exercise.)
+
+```{r, error = TRUE}
+
+# look at all available palettes in the R color brewer package:
+RColorBrewer::display.brewer.all()
+
+# let's use the spectral color
+mem_plot1 +
+	scale_x_continuous(
+		name = "wing length", # change back to just wing length
+		breaks = c(log10(60), log10(65), log10(70), log10(75)),
+		labels = c(60, 65, 70, 75),
+		limits= c(1.77, 1.893))  +
+  scale_color_brewer(palette = "Spectral") # why color vs. fill?
+
+#Q: when do you use color vs. fill?
+
+# if you wanted to use a palette with fewer colors than you need, you can first run a function in Rcolorbrewer and specify the number
+count_sp <- length(unique(morph$taxon))
+getPalette = colorRampPalette(brewer.pal(8, "Set2"))
+
+mem_plot1 +
+	scale_x_continuous(
+		name = "wing length", # change back to just wing length
+		breaks = c(log10(60), log10(65), log10(70), log10(75)),
+		labels = c(60, 65, 70, 75),
+		limits= c(1.77, 1.893))  + # close to range of values
+  scale_color_manual(values = getPalette(count_sp))
+		# notice the above changed to manual from brewer
+```
+
+What if you want to specify your own colors? I use color-hex.com. You can add them to your dataset. ut we still want the legend to hav the species names. 
+
+```{r}
+taxon <- unique(morph$taxon)
+colors_sp <- c(
+	"#ff4d00",
+	"#e636e1",
+	"#78f4b9",
+	"#90dcff",
+	"#458b74",
+	"#ffd6d6",
+	"#ff0000",
+	"#760300",
+	"#b5aba9",
+	"#150549")
+
+col_dat <- tibble(taxon, colors_sp)
+
+morph <- merge(morph, col_dat, by = "taxon")
+
+ggplot(morph, aes(log_wingl, log_beakh, color = colors_sp)) +
+	geom_point() +
+	scale_color_identity()
+
+#this works but where is our legend?
+ggplot(morph, aes(log_wingl, log_beakh, color = colors_sp)) +
+	geom_point() +
+	scale_color_identity(guide = "legend",
+											 labels = c(as.factor(morph$taxon))) +
+	labs(color = "Species")
+
+```
+
+
+Now let's add plots together. Say we have one for females and one for males (we could also facet and customize, which we will do next.
+)
+```{r}
+
+10^min(morph$log_beakh)
+10^max(morph$log_beakh)
+range(morph$log_beakh)
+
+morph_females <- morph %>%
+	filter(sex == "F")
+
+female_plot <- 
+	ggplot(morph_females, aes(log_wingl, log_beakh)) +
+	geom_point(color = "green") +
+	scale_x_continuous(
+		name = "wing length", # change back to just wing length
+		breaks = c(log10(60), log10(65), log10(70), log10(75)),
+		labels = c(60, 65, 70, 75),
+		limits= c(1.77, 1.893))  + # close to range of values
+	scale_y_continuous(
+		name = "beak heaight", 
+		breaks = c(log10(7), log10(9),log10(11),
+							 log10(13), log10(15)), 
+		labels = c(7, 9, 11, 13, 15),
+		limits= c(0.82, 1.22)) +
+		theme(
+			axis.title = element_text(size = 14, color = "grey50"),
+			axis.text = element_text(size = 10, color = "grey50"),
+			panel.grid.major = element_blank(),
+			panel.grid.minor = element_blank(),
+			panel.border = element_rect(color = "grey50", fill = NA),
+			panel.background = element_rect(fill = NA))
+
+female_plot
+
+# for the male plot, we don't need a y-axis since we are going to place these two plots side-by-side
+morph_males <- morph %>%
+	filter(sex == "M")
+
+male_plot <- 
+	ggplot(morph_males, aes(log_wingl, log_beakh)) +
+	geom_point(color = "orange") +
+	scale_x_continuous(
+		name = "wing length", # change back to just wing length
+		breaks = c(log10(60), log10(65), log10(70), log10(75)),
+		labels = c(60, 65, 70, 75),
+		limits= c(1.77, 1.893))  + # close to range of values
+	scale_y_continuous( # include this so plots on same scale
+		name = "beak heaight", 
+		breaks = c(log10(7), log10(9),log10(11),
+							 log10(13), log10(15)), 
+		labels = c(7, 9, 11, 13, 15),
+		limits= c(0.82, 1.22)) +
+		theme(
+			axis.title.x = element_text(size = 14, color = "grey50"),
+			axis.text.x = element_text(size = 10, color = "grey50"),
+			axis.title.y = element_blank(),
+			axis.text.y = element_blank(),
+			axis.ticks.y = element_blank(),
+			panel.grid.major = element_blank(),
+			panel.grid.minor = element_blank(),
+			panel.border = element_rect(color = "grey50", fill = NA),
+			panel.background = element_rect(fill = NA))
+
+male_plot
+
+```
+
+To put plots together, I use the patchwork library. I find it the least tedious. It's documentation is here: https://patchwork.data-imaginist.com/. We have to specify the margin of each plot if we little to no space in between plots. We can also add a title.
+
+```{r}
+
+plot1 <- female_plot +
+	theme(plot.title = element_text(size = 14, hjust = 0.5, 
+																	face = "bold", color = "green"),
+				plot.margin = unit(c(0.2, 0, 0.2, 0.2), "in")) +
+	annotate(geom = "text", label = "(a)", x = 1.77, y = 1.22) +
+	annotate(geom = "text", label = "females", x = 1.83, y = 1.22,
+					 color = "green", size = 5, fontface = "bold")
+
+
+plot2 <- male_plot +
+	theme(plot.title = element_text(size = 14, hjust = 0.5, 
+																	face = "bold", color = "orange"),
+				plot.margin = unit(c(0.2, 0.2, 0.2, 0), "in")) +
+	annotate(geom = "text", label = "(b)", x = 1.77, y = 1.22) +
+	annotate(geom = "text", label = "males", x = 1.83, y = 1.22,
+					 color = "orange", size = 5, fontface = "bold")
+
+plot_mem <- plot1 + plot2
+
+ggsave(plot_mem,
+			 file = "plot_mem.png",
+			 width = 10,
+			 height = 5,
+			 units = "in")
+
+plot_mem
+
+```
+
+Let's pretend we faceted this plot and we want the same result.
+```{r}
+mem_plot_facet <- 
+	ggplot(morph, aes(log_wingl, log_beakh, color = sex)) +
+	geom_point() +
+	facet_wrap(~ sex) +
+	scale_color_manual(values = c("green", "orange")) +
+	scale_x_continuous(
+		name = "wing length", # change back to just wing length
+		breaks = c(log10(60), log10(65), log10(70), log10(75)),
+		labels = c(60, 65, 70, 75),
+		limits= c(1.77, 1.893))  + # close to range of values
+	scale_y_continuous( # include this so plots on same scale
+		name = "beak heaight", 
+		breaks = c(log10(7), log10(9),log10(11),
+							 log10(13), log10(15)), 
+		labels = c(7, 9, 11, 13, 15),
+		limits= c(0.82, 1.22)) +
+		theme(
+			axis.title = element_text(size = 14, color = "grey50"),
+			axis.text = element_text(size = 10, color = "grey50"),
+			panel.grid.major = element_blank(),
+			panel.grid.minor = element_blank(),
+			panel.border = element_rect(color = "grey50", fill = NA),
+			panel.background = element_rect(fill = NA),
+			legend.position = "none",
+			strip.background = element_blank(),
+			strip.text = element_blank(),
+			panel.spacing = unit(0.25, "lines"))
+
+mem_plot_facet
+
+# create a little dataset for text
+
+female_text <- tibble(log_wingl = 1.83,
+											log_beakh = 1.22,
+											lab = "females",
+											sex = factor("F", levels = c("F", "M")))
+
+a_lab <- tibble(log_wingl = 1.77,
+											log_beakh = 1.22,
+											lab = "(a)",
+											sex = factor("F", levels = c("F", "M")))
+
+male_text <- tibble(log_wingl = 1.83,
+										log_beakh = 1.22,
+										lab = "males",
+										sex = factor("M", levels = c("F", "M")))
+
+b_lab <- tibble(log_wingl = 1.77,
+								log_beakh = 1.22,
+								lab = "(a)",
+								sex = factor("M", levels = c("F", "M")))
+
+
+mem_plot_facet_title <- mem_plot_facet +
+	geom_text(data = female_text, label = "females", size = 5) +
+	geom_text(data = a_lab, label = "(a)", color = "black",
+						fontface = "bold") +
+	geom_text(data = male_text, label = "males", size = 5) +
+	geom_text(data = b_lab, label = "(b)", color = "black",
+						fontface = "bold")
+
+ggsave(mem_plot_facet_title,
+			 file = "mem_plot_facet_title.png",
+			 width = 10,
+			 height = 5,
+			 units = "in")
+
+mem_plot_facet_title
+
+```
+
+There is LOTS of other stuff to learn, but you have the basics. I usually look up modifications as I go or as my supervisor requests them ;).
+
+Good luck! 

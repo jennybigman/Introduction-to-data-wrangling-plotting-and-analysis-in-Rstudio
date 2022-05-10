@@ -1,7 +1,7 @@
 ---
 title: "03 - examine and manipulate data"
 author: "Jenny Bigman"
-date: "5/3/2022"
+date: "5/12/2022"
 output: html_document
 ---
 
@@ -9,19 +9,23 @@ output: html_document
 
 knitr::opts_chunk$set(echo = TRUE)
 pacman::p_load(knitr, tidyverse, here)
+
+dat <- read_csv(here("./data/portal_data_joined.csv"))
 ```
 
-Let's work with our portal data and dplyr. We will examine, manipulate, summarize, and plot the data.
+Let's work with our data from the last lesson and the dplyr package. We will examine, manipulate, summarize, and plot the data.
 
-dpylr (https://dplyr.tidyverse.org/), in my opinion, is one of the most useful packages in R. Check out the website and read about it. These R documentation websites usually have very helpful tutorials (vignettes). There is also a helpful blog post by a Sean Anderson (a former lab-mate of mine, https://seananderson.ca/2014/09/13/dplyr-intro/).
+[dpylr](https://dplyr.tidyverse.org/), in my opinion, is one of the most useful packages in R. Check out the website and read about it. These R documentation websites usually have very helpful tutorials (vignettes). There is also a helpful blog post by a Sean Anderson (a former lab-mate of mine, https://seananderson.ca/2014/09/13/dplyr-intro/). I used a lot of Sean's examples for this lesson and the mixed effects modeling lesson, so thank you Sean!
 
 dplyr is in the tidyverse, so we don't need to load it separately.
 
-We've already used some dplyr functions! We have used glimpse(), mutate(), and the %>% (pipe). Let's build on these. 
+We've already used some dplyr functions! We have used `glimpse()`, `mutate()`, and `%>%` (pipe). Let's build on these. 
 
-dplyr has 5 main functions: mutate, select, filter, summarize, & arrange. 
+dplyr has 5 main functions: `mutate()`, `select()`, `filter()`, `summarize()`, & `arrange()`. 
 
-We've already worked with mutate() but let's examine it more closely. Mutate() lets you add new columns, which can build on each other if you want.
+# Mutate()
+
+We've already worked with `mutate()` but let's examine it more closely. `mutate()` lets you add new columns, which can build on each other if you want.
 
 ```{r}
 
@@ -57,6 +61,7 @@ range(dat$log_hindfoot_length)
 
 ```
 
+Let's remove NAs in our dataset to help us with some later wrangling.
 ```{r}
 
 # we can create new dataframe with no NAs if we'd like (but keep the original!)
@@ -77,32 +82,28 @@ names(dat_no_NA)
 # this looks like it worked, but let's check the range of values
 range(dat_no_NA$hindfoot_length)
 range(dat_no_NA$log_hindfoot_length)
-
 ```
 
+# Select()
 
-Let's work next with select(). Select() allows you to select certain columns for subsetting. 
+Let's work next with `select()`. `select()` allows you to select certain columns for subsetting. 
 
 ```{r}
-
 species <- select(dat, species)
-
 # you might want to use this when you have many columns in your raw data that you 
 # don't need for analysis -- but you should never change your raw data!
 
 # you can also use '-' in front of the column to remove it
-
-species <- select(dat, -species) # this will remove the column from the dataframe
+species <- select(dat, -species) 
+# this will remove the column from the dataframe
 # instead of keeping just this column like the above example
 
 # can use helper functions 
-
 select(dat, contains("i"))
 select(dat, starts_with("ta"))
 select(dat, ends_with("us"))
 
 # can also use column positions (more like a traditional subset in base R)
-
 select(dat, 1:5) # first five columns
 
 # can also do this in base R (not using the dplyr package)
@@ -118,7 +119,14 @@ Challenge: Can you write the above code 'species <- select(dat, species)' using 
 
 ```
 
-Next up is filter(). Filter() subsets rows by name. This is a cool and useful function because you can use any valid statement. You will see what I mean below.
+```{r}
+species <- dat %>%
+	select(species)
+```
+
+# Filter()
+
+Next up is `filter()`. `filter()` subsets rows by name. This is a cool and useful function because you can use any valid statement. You will see what I mean below.
 
 ```{r}
 
@@ -185,7 +193,9 @@ nrow(filter(dat, species == "harrisi" & hindfoot_length < 50))
 ```
 
 
-Next, let's look at summarize(). This is the same as summarise() [Hadley Wickham, developer of the tidyverse, is from New Zealand]. Summarize() allows you to, well, summarize data. This function is especially useful when combined with another function, group_by(), which allows you to group data and then summarize. 
+# Summarize()
+
+Next, let's look at `summarize()`. This is the same as `summarise()` [Hadley Wickham, developer of the tidyverse, is from New Zealand]. `summarize()` allows you to, well, summarize data. This function is especially useful when combined with another function, `group_by()`, which allows you to group data and then summarize. 
 
 ```{r}
 
@@ -217,6 +227,7 @@ Challenge: How might we write the above code in another way (hint: use the pipe 
 sum <- dat %>%
 	summarize(mean_hindfoot_length = mean(hindfoot_length, na.rm = TRUE))
 ```
+
 Great, now we have a mean hindfoot length. But there are other ways to do this outside of summarize and we haven't fully unleashed the power of summarize. 
 
 First, let's look at a simple way to calculate the mean of a column (or vector).
@@ -244,7 +255,8 @@ vector[vector < 20 | vector > 100]
 
 ```
 
-Now let's unleash the power of group_by() and summarize()! I use group_by() all of the time. It is a really useful function, and not just with summarize.
+
+Now let's unleash the power of using `group_by()` and `summarize()` together! I use `group_by()` all of the time. It is a really useful function, and not just with summarize.
 
 ```{r}
 
@@ -266,8 +278,9 @@ plot_id_count <- dat %>%
 
 ```
 
+# Arrange()
 
-Last, let's look at arrange(). Arrange() let's you order the rows in ascending or descending order by a particular column.
+Last, let's look at `arrange()`. `arrange()` let's you order the rows in ascending or descending order by a particular column.
 
 ```{r}
 
@@ -278,25 +291,30 @@ arrange(dat, year, hindfoot_length) # can specify more than one column!
 arrange(dat, desc(hindfoot_length))
 ```
 
-Challenge: What if I wanted to only see the first five rows and arrange by 'record_id' ?
+Challenge: What if I wanted to only see the first five rows and arrange by `record_id` in descending order?
 ```{r}
 
 ```
 
+```{r}
 
-There are other functions in dplyr. There is even a whole philosophy on data wrangling using dplyr -- 'split - apply - combine". We are doing a bit of this already with group_by(). The apply family are another set of functions that are very useful, but a little more advanced (they are especially useful when writing your own functions -- which yes! you can write your own). We won't go into them now but good to be aware of them. If you are interested, here are some resources for dplyr and data wrangling in general:
+head(arrange(dat, desc(record_id)))
+		 
+``` 
+
+
+There are other functions in dplyr. There is even a whole philosophy on data wrangling using dplyr -- `split - apply - combine`. We are doing a bit of this already with `group_by()`. The apply family are another set of functions that are very useful, but a little more advanced (they are especially useful when writing your own functions -- which yes! you can write your own). We won't go into them now but good to be aware of them. If you are interested, here are some resources for dplyr and data wrangling in general:
 
 
 1. [dplyr vignette](https://dplyr.tidyverse.org/articles/dplyr.html)
 2. [grouping](https://dplyr.tidyverse.org/articles/grouping.html)
-3. [joining dataframes using dplyr] (https://dplyr.tidyverse.org/articles/two-table.html)
+3. [joining dataframes using dplyr](https://dplyr.tidyverse.org/articles/two-table.html)
 4. [wrangling columns](https://dplyr.tidyverse.org/articles/colwise.html)
 5. [wrangling rows](https://dplyr.tidyverse.org/articles/rowwise.html)
 
 
-Before we plot some data, let's look at some other functions that I find useful and use alot. 
+Before we plot some data, let's look another useful function from dplyr, `rename()`. `rename()` allows you to rename column headings. 
 
-First up, rename(). Rename() allows you to rename column headings. 
 ```{r}
 
 names(dat)
@@ -306,4 +324,4 @@ dat <- dat %>%
 
 ```
 
- 
+ Ok, let's move on to `ggplot()`.

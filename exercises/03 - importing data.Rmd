@@ -1,7 +1,7 @@
 ---
 title: "02 - importing data"
 author: "Jenny Bigman"
-date: "5/2/2022"
+date: "5/12/2022"
 output: html_document
 ---
 
